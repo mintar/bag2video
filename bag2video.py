@@ -64,6 +64,8 @@ def noshow(win, img):
     pass
 
 if __name__ == '__main__':
+    def time_from_string(input_str):
+        return rospy.Time.from_seconds(float(input_str))
     parser = argparse.ArgumentParser(description='Extract and encode video from bag files.')
     parser.add_argument('--outfile', '-o', action='store', default=None,
                         help='Destination of the video file. Defaults to the location of the input file.')
@@ -71,9 +73,9 @@ if __name__ == '__main__':
                         help='Precision of variable framerate interpolation. Higher numbers\
                         match the actual framerater better, but result in larger files and slower conversion times.')
     parser.add_argument('--viz', '-v', action='store_true', help='Display frames in a GUI window.')
-    parser.add_argument('--start', '-s', action='store', default=rospy.Time(0), type=rospy.Time,
+    parser.add_argument('--start', '-s', action='store', default=rospy.Time(0), type=time_from_string,
                         help='Rostime representing where to start in the bag.')
-    parser.add_argument('--end', '-e', action='store', default=rospy.Time(sys.maxint), type=rospy.Time,
+    parser.add_argument('--end', '-e', action='store', default=rospy.Time(sys.maxint), type=time_from_string,
                         help='Rostime representing where to stop in the bag.')
     parser.add_argument('--encoding', choices=('rgb8', 'bgr8', 'mono8'), default='bgr8',
                         help='Encoding of the deserialized image.')
