@@ -37,10 +37,12 @@ def get_info(bag, topic=None, start_time=rospy.Time(0), stop_time=rospy.Time(sys
     diffs = 1/np.diff(times)
     return np.median(diffs), min(diffs), max(diffs), size, times
 
-def calc_n_frames(times, precision=10):
+def calc_n_frames(times, precision=10, target_fps=None):
     # the smallest interval should be one frame, larger intervals more
     intervals = np.diff(times)
-    return np.int64(np.round(precision*intervals/min(intervals)))
+    if target_fps is None:
+        target_fps = 1.0 / min(intervals)
+    return np.int64(np.round(precision * intervals * target_fps).clip(0))
 
 def write_frames(bag, writer, total, topic=None, nframes=repeat(1), start_time=rospy.Time(0), stop_time=rospy.Time(sys.maxint), viz=False, encoding='bgr8'):
     bridge = CvBridge()
@@ -79,6 +81,8 @@ if __name__ == '__main__':
                         help='Rostime representing where to stop in the bag.')
     parser.add_argument('--encoding', choices=('rgb8', 'bgr8', 'mono8'), default='bgr8',
                         help='Encoding of the deserialized image.')
+    parser.add_argument('--fps', '-f', action='store', default=30.0, type=float,
+                        help='Target frames per second.')
 
     parser.add_argument('topic')
     parser.add_argument('bagfile')
@@ -96,9 +100,10 @@ if __name__ == '__main__':
         bag = rosbag.Bag(bagfile, 'r')
         print 'Calculating video properties'
         rate, minrate, maxrate, size, times = get_info(bag, args.topic, start_time=args.start, stop_time=args.end)
-        nframes = calc_n_frames(times, args.precision)
+        nframes = calc_n_frames(times, args.precision, args.fps)
         # writer = cv2.VideoWriter(outfile, cv2.VideoWriter_fourcc(*'DIVX'), rate, size)
-        writer = cv2.VideoWriter(outfile, cv2.VideoWriter_fourcc(*'DIVX'), np.ceil(maxrate*args.precision), size)
+        # writer = cv2.VideoWriter(outfile, cv2.VideoWriter_fourcc(*'DIVX'), np.ceil(maxrate*args.precision), size)
+        writer = cv2.VideoWriter(outfile, cv2.VideoWriter_fourcc(*'DIVX'), np.ceil(args.fps * args.precision), size)
         print 'Writing video'
         write_frames(bag, writer, len(times), topic=args.topic, nframes=nframes, start_time=args.start, stop_time=args.end, encoding=args.encoding)
         writer.release()
